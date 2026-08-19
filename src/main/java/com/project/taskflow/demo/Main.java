@@ -19,7 +19,13 @@ public class Main {
         Workflow workflow =
                 new WorkflowBuilder("ROSCA")
 
-                        .task("send-email")
+                        .task("payment")
+
+                        .parallel(
+                                "send-email",
+                                "generate-invoice",
+                                "analytics"
+                        )
 
                         .build();
 
@@ -32,6 +38,21 @@ public class Main {
         registry.register(
                 "send-email",
                 "http://localhost:8081/workers/send-email"
+        );
+
+        registry.register(
+                "generate-invoice",
+                "http://localhost:8082/workers/generate-invoice"
+        );
+
+        registry.register(
+                "analytics",
+                "http://localhost:8083/workers/analytics"
+        );
+
+        registry.register(
+                "payment",
+                "http://localhost:8084/workers/payment"
         );
 
         WorkflowExecutor executor =

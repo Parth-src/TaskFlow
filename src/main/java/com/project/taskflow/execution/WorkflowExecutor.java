@@ -5,6 +5,12 @@ import com.project.taskflow.worker.HttpDispatcher;
 import com.project.taskflow.worker.WorkerMetadata;
 import com.project.taskflow.worker.WorkerRegistry;
 
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import java.util.List;
 
 public class WorkflowExecutor {
@@ -37,38 +43,62 @@ public class WorkflowExecutor {
                     engine.getReadyTasks();
 
             if (readyTasks.isEmpty()) {
-
                 break;
             }
 
-            for (WorkflowNode node : readyTasks) {
+            try (var executor =
+                         Executors.newVirtualThreadPerTaskExecutor()) {
 
-                WorkerMetadata worker =
-                        registry.get(
-                                node.getWorkerId()
-                        );
+                List<Future<?>> futures =
+                        new ArrayList<>();
 
-                if (worker == null) {
+                for (WorkflowNode node : readyTasks) {
 
-                    System.out.println(
-                            "Worker not found: "
-                                    + node.getWorkerId()
+                    futures.add(
+
+                            executor.submit(() -> {
+
+                                WorkerMetadata worker =
+                                        registry.get(
+                                                node.getWorkerId()
+                                        );
+
+                                if (worker == null) {
+
+                                    System.out.println(
+                                            "Worker not found: "
+                                                    + node.getWorkerId()
+                                    );
+
+                                    return;
+                                }
+
+                                boolean success =
+                                        dispatcher.dispatch(
+                                                worker
+                                        );
+
+                                if (success) {
+
+                                    synchronized (engine) {
+
+                                        engine.completeTask(
+                                                node
+                                        );
+                                    }
+                                }
+                            })
                     );
-
-                    continue;
                 }
 
-                boolean success =
-                        dispatcher.dispatch(
-                                worker
-                        );
+                for (Future<?> future : futures) {
 
-                if (success) {
-
-                    engine.completeTask(
-                            node
-                    );
+                    future.get();
                 }
+
+            } catch (Exception e) {
+
+                throw new RuntimeException(e);
             }
         }
 
@@ -76,4 +106,5 @@ public class WorkflowExecutor {
                 "Workflow completed."
         );
     }
+
 }
