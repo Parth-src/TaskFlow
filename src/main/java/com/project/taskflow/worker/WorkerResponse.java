@@ -8,6 +8,9 @@ public class WorkerResponse {
 
     private String message;
 
+    public WorkerResponse() {
+    }
+
     public WorkerResponse(
             boolean success,
             boolean retry,
@@ -31,5 +34,17 @@ public class WorkerResponse {
     public String getMessage() {
 
         return message;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public void setRetry(boolean retry) {
+        this.retry = retry;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
     }
 }

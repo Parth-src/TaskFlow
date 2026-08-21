@@ -5,13 +5,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class HttpDispatcher {
 
     private final HttpClient client =
             HttpClient.newHttpClient();
 
-    public boolean dispatch(
+    private final ObjectMapper objectMapper =
+            new ObjectMapper();
+
+    public WorkerResponse dispatch(
             WorkerMetadata worker) {
 
         try {
@@ -47,15 +51,41 @@ public class HttpDispatcher {
                     response.body()
             );
 
-            return response.statusCode()
-                    == 200;
+            if (response.statusCode() == 200) {
 
-        } catch (IOException |
-                 InterruptedException e) {
+                WorkerResponse workerResponse =
+                        objectMapper.readValue(
+                                response.body(),
+                                WorkerResponse.class
+                        );
 
-            e.printStackTrace();
+                return workerResponse;
+            }
 
-            return false;
+            return new WorkerResponse(
+                    false,
+                    true,
+                    "Worker returned HTTP "
+                            + response.statusCode()
+            );
+
+        } catch (IOException e) {
+
+            return new WorkerResponse(
+                    false,
+                    true,
+                    "Worker connection failed"
+            );
+
+        } catch (InterruptedException e) {
+
+            Thread.currentThread().interrupt();
+
+            return new WorkerResponse(
+                    false,
+                    true,
+                    "Worker execution interrupted"
+            );
         }
     }
 }

@@ -64,4 +64,9 @@ public class WorkflowNode {
 
         return dependents;
     }
+
+    public UUID getId() {
+
+        return id;
+    }
 }

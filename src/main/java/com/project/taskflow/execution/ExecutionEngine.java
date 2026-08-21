@@ -76,4 +76,12 @@ public class ExecutionEngine {
             }
         }
     }
+
+    public void failTask(
+            WorkflowNode failedNode) {
+
+        failedNode.setStatus(
+                TaskStatus.FAILED
+        );
+    }
 }
