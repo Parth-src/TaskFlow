@@ -1,6 +1,8 @@
 package com.project.taskflow.worker;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class WorkerRegistry {
@@ -25,5 +27,28 @@ public class WorkerRegistry {
             String workerId) {
 
         return workers.get(workerId);
+    }
+
+    public void discover(
+            String baseUrl) {
+
+        WorkerDiscovery discovery =
+                new WorkerDiscovery();
+
+        List<String> workerIds =
+                discovery.discover(baseUrl);
+
+        for (String workerId :
+                workerIds) {
+
+            register(
+                    workerId,
+                    baseUrl + "/workers/" + workerId
+            );
+        }
+    }
+
+    public Collection<WorkerMetadata> getAll() {
+        return workers.values();
     }
 }

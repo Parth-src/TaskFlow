@@ -1,0 +1,21 @@
+name: payment-flow
+
+tasks:
+
+  - id: payment
+    worker: payment
+
+  - id: send-email
+    worker: send-email
+    depends_on:
+      - payment
+
+  - id: generate-invoice
+    worker: generate-invoice
+    depends_on:
+      - payment
+
+  - id: analytics
+    worker: analytics
+    depends_on:
+      - payment

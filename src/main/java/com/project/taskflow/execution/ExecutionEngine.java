@@ -3,9 +3,9 @@ package com.project.taskflow.execution;
 import com.project.taskflow.enums.TaskStatus;
 import com.project.taskflow.model.Workflow;
 import com.project.taskflow.model.WorkflowNode;
+import com.project.taskflow.queue.TaskScheduler;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class ExecutionEngine {
 
@@ -83,5 +83,48 @@ public class ExecutionEngine {
         failedNode.setStatus(
                 TaskStatus.FAILED
         );
+    }
+
+    private final Set<UUID> scheduledTasks =
+            new HashSet<>();
+
+    public void scheduleReadyTasks(
+            TaskScheduler scheduler) {
+
+        List<WorkflowNode> readyTasks =
+                getReadyTasks();
+
+        for (WorkflowNode node : readyTasks) {
+
+            UUID taskId =
+                    node.getId();
+
+            if (scheduledTasks.contains(taskId)) {
+                continue;
+            }
+
+            scheduler.schedule(
+                    taskId,
+                    System.currentTimeMillis()
+            );
+
+            scheduledTasks.add(taskId);
+        }
+    }
+
+    public WorkflowNode getNode(UUID taskId) {
+
+        for (WorkflowNode node : workflow.getNodes()) {
+
+            if (node.getId().equals(taskId)) {
+                return node;
+            }
+        }
+
+        return null;
+    }
+
+    public String getWorkflowId() {
+        return workflow.getName();
     }
 }

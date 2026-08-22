@@ -2,6 +2,7 @@ package com.project.taskflow.execution;
 
 import com.project.taskflow.dlq.DeadLetterEntry;
 import com.project.taskflow.model.WorkflowNode;
+import com.project.taskflow.queue.TaskScheduler;
 import com.project.taskflow.worker.HttpDispatcher;
 import com.project.taskflow.worker.WorkerMetadata;
 import com.project.taskflow.worker.WorkerRegistry;
@@ -30,22 +31,28 @@ public class WorkflowExecutor {
 
     private final DeadLetterQueue dlq;
 
-    private final Map<String, TaskExecutionState>
+    private final TaskScheduler scheduler;
+
+    private final ExecutionStore executionStore;
+
+
+    private final Map<UUID, TaskExecutionState>
             executionStates = new ConcurrentHashMap<>();
 
     public WorkflowExecutor(
             ExecutionEngine engine,
             WorkerRegistry registry,
             RetryPolicy retryPolicy,
-            DeadLetterQueue dlq) {
+            DeadLetterQueue dlq,
+            TaskScheduler scheduler,
+            ExecutionStore executionStore) {
 
         this.engine = engine;
-
         this.registry = registry;
-
         this.retryPolicy = retryPolicy;
-
         this.dlq = dlq;
+        this.scheduler = scheduler;
+        this.executionStore = executionStore;
 
         this.dispatcher =
                 new HttpDispatcher();
@@ -55,12 +62,20 @@ public class WorkflowExecutor {
 
         engine.initialize();
 
+        engine.scheduleReadyTasks(
+                scheduler
+        );
+
+        String executionId =
+                UUID.randomUUID().toString();
+
+
         while (true) {
 
-            List<WorkflowNode> readyTasks =
-                    engine.getReadyTasks();
+            List<UUID> taskIds =
+                    scheduler.nextTasks(100);
 
-            if (readyTasks.isEmpty()) {
+            if (taskIds.isEmpty()) {
                 break;
             }
 
@@ -70,19 +85,43 @@ public class WorkflowExecutor {
                 List<Future<?>> futures =
                         new ArrayList<>();
 
-                for (WorkflowNode node : readyTasks) {
+                for (UUID taskId : taskIds) {
+
+                    WorkflowNode node =
+                            engine.getNode(taskId);
+
+                    if (node == null) {
+
+                        System.out.println(
+                                "Task not found: "
+                                        + taskId
+                        );
+
+                        continue;
+                    }
+
+                    TaskExecution execution =
+                            new TaskExecution(
+                                    taskId,
+                                    engine.getWorkflowId(),
+                                    executionId,
+                                    node.getWorkerId()
+                            );
+
+                    executionStore.save(execution);
 
                     futures.add(
-
                             executor.submit(() -> {
 
                                 TaskExecutionState state =
                                         executionStates.computeIfAbsent(
-                                                node.getWorkerId(),
-                                                key -> new TaskExecutionState()
+                                                taskId,
+                                                key ->
+                                                        new TaskExecutionState()
                                         );
-
                                 while (true) {
+
+                                    executionStore.markRunning(taskId);
 
                                     state.incrementAttempt();
 
@@ -113,9 +152,13 @@ public class WorkflowExecutor {
                                     }
 
                                     WorkerResponse response =
-                                            dispatcher.dispatch(worker);
+                                            dispatcher.dispatch(
+                                                    worker
+                                            );
 
                                     if (response.isSuccess()) {
+
+                                        executionStore.markCompleted(taskId);
 
                                         synchronized (engine) {
 
@@ -131,13 +174,20 @@ public class WorkflowExecutor {
 
                                     if (!response.shouldRetry()) {
 
-                                        System.out.println("Task failed permanently: " + node.getWorkerId());
+                                        executionStore.markFailed(
+                                                taskId,
+                                                response.getMessage()
+                                        );
 
                                         synchronized (engine) {
 
                                             engine.failTask(node);
 
-                                            dlq.enqueue(node, state, response.getMessage());
+                                            dlq.enqueue(
+                                                    node,
+                                                    state,
+                                                    response.getMessage()
+                                            );
                                         }
 
                                         break;
@@ -146,14 +196,15 @@ public class WorkflowExecutor {
                                     if (state.getAttemptCount()
                                             >= retryPolicy.getMaxRetries()) {
 
-                                        System.out.println(
-                                                "Retry limit reached for: "
-                                                        + node.getWorkerId()
+                                        executionStore.markFailed(
+                                                taskId,
+                                                response.getMessage()
                                         );
 
                                         synchronized (engine) {
 
                                             engine.failTask(node);
+
                                             dlq.enqueue(
                                                     node,
                                                     state,
@@ -171,6 +222,8 @@ public class WorkflowExecutor {
                                 }
                             })
                     );
+
+
                 }
 
                 for (Future<?> future : futures) {
@@ -182,6 +235,14 @@ public class WorkflowExecutor {
 
                 throw new RuntimeException(e);
             }
+
+            /*
+             * Some tasks may have become READY
+             * after the previous batch completed.
+             */
+            engine.scheduleReadyTasks(
+                    scheduler
+            );
         }
 
         System.out.println(
@@ -251,5 +312,7 @@ public class WorkflowExecutor {
             );
         }
     }
+
+
 
 }

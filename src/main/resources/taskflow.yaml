@@ -1,0 +1,2 @@
+worker:
+  host: http://localhost:8081
