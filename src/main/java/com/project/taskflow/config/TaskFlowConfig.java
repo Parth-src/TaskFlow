@@ -18,7 +18,11 @@ public class TaskFlowConfig {
 
         private String host;
 
+        private String token;
+
+
         public String getHost() {
+
             return host;
         }
 
@@ -26,6 +30,18 @@ public class TaskFlowConfig {
                 String host) {
 
             this.host = host;
+        }
+
+
+        public String getToken() {
+
+            return token;
+        }
+
+        public void setToken(
+                String token) {
+
+            this.token = token;
         }
     }
 }

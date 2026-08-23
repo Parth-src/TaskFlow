@@ -212,7 +212,8 @@ public class TaskFlowCLI implements CommandLineRunner {
                         retryPolicy,
                         dlq,
                         scheduler,
-                        executionStore
+                        executionStore,
+                        config.getWorker().getToken()
                 );
 
 
@@ -293,7 +294,8 @@ public class TaskFlowCLI implements CommandLineRunner {
                         retryPolicy,
                         dlq,
                         scheduler,
-                        executionStore
+                        executionStore,
+                        config.getWorker().getToken()
                 );
 
 

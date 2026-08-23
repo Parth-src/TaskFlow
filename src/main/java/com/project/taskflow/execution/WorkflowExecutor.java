@@ -45,7 +45,8 @@ public class WorkflowExecutor {
             RetryPolicy retryPolicy,
             DeadLetterQueue dlq,
             TaskScheduler scheduler,
-            ExecutionStore executionStore) {
+            ExecutionStore executionStore,
+            String workerToken) {
 
         this.engine = engine;
         this.registry = registry;
@@ -55,7 +56,7 @@ public class WorkflowExecutor {
         this.executionStore = executionStore;
 
         this.dispatcher =
-                new HttpDispatcher();
+                new HttpDispatcher(workerToken);
     }
 
     public void execute() {

@@ -1,2 +1,3 @@
 worker:
   host: http://localhost:8081
+  token: ${TASKFLOW_WORKER_TOKEN}

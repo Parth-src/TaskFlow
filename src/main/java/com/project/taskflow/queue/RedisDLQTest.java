@@ -1,4 +1,4 @@
-package com.project.taskflow.redis;
+package com.project.taskflow.queue;
 
 import com.project.taskflow.dlq.DeadLetterQueue;
 import com.project.taskflow.dlq.DeadLetterEntry;

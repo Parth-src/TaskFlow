@@ -150,7 +150,8 @@ public class Main {
                         retryPolicy,
                         dlq,
                         scheduler,
-                        executionStore
+                        executionStore,
+                        config.getWorker().getToken()
                 );
 
 
