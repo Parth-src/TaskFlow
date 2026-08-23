@@ -8,7 +8,7 @@ import java.util.*;
 public class RedisTaskQueue implements TaskQueue {
 
     private static final String QUEUE_KEY =
-            "queue:tasks";
+            "taskflow:queue:tasks";
 
     private final StringRedisTemplate redis;
 

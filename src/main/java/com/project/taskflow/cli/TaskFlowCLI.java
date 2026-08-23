@@ -3,54 +3,43 @@ package com.project.taskflow.cli;
 import com.project.taskflow.config.TaskFlowConfig;
 import com.project.taskflow.config.TaskFlowConfigLoader;
 import com.project.taskflow.dlq.DeadLetterQueue;
-import com.project.taskflow.dlq.InMemoryDeadLetterQueue;
 import com.project.taskflow.execution.ExecutionEngine;
 import com.project.taskflow.execution.ExecutionStore;
-import com.project.taskflow.execution.RedisExecutionStore;
 import com.project.taskflow.execution.WorkflowExecutor;
 import com.project.taskflow.model.Workflow;
+import com.project.taskflow.queue.TaskScheduler;
 import com.project.taskflow.retry.RetryPolicy;
 import com.project.taskflow.worker.WorkerRegistry;
 import com.project.taskflow.workflow.WorkflowLoader;
-import com.project.taskflow.queue.RedisTaskQueue;
-import com.project.taskflow.queue.RedisTaskScheduler;
-import com.project.taskflow.queue.TaskScheduler;
 
-import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.util.UUID;
 
-public class TaskFlowCLI {
+@Component
+public class TaskFlowCLI implements CommandLineRunner {
 
-    public static void main(String[] args) {
+    private final WorkerRegistry registry;
+    private final DeadLetterQueue dlq;
+    private final TaskScheduler scheduler;
+    private final ExecutionStore executionStore;
 
-        DeadLetterQueue dlq =
-                new InMemoryDeadLetterQueue();
+    public TaskFlowCLI(
+            WorkerRegistry registry,
+            DeadLetterQueue dlq,
+            TaskScheduler scheduler,
+            ExecutionStore executionStore) {
 
-        LettuceConnectionFactory factory =
-                new LettuceConnectionFactory(
-                        "localhost",
-                        6379
-                );
+        this.registry = registry;
+        this.dlq = dlq;
+        this.scheduler = scheduler;
+        this.executionStore = executionStore;
+    }
 
-        factory.afterPropertiesSet();
-
-        StringRedisTemplate redis =
-                new StringRedisTemplate(factory);
-
-        RedisTaskQueue queue =
-                new RedisTaskQueue(redis);
-
-        TaskScheduler scheduler =
-                new RedisTaskScheduler(queue);
-
-        ExecutionStore executionStore =
-                new RedisExecutionStore(redis);
-
-        // -----------------------------
-        // 1. Validate command
-        // -----------------------------
+    @Override
+    public void run(String... args) {
 
         if (args.length == 0) {
 
@@ -59,40 +48,103 @@ public class TaskFlowCLI {
             return;
         }
 
-        if (!args[0].equals("run")) {
+        // =====================================================
+        // RUN
+        // =====================================================
 
-            System.out.println(
-                    "Unknown command: "
-                            + args[0]
+        if (args[0].equals("run")) {
+
+            if (args.length < 4 ||
+                    !args[2].equals("--config")) {
+
+                printUsage();
+
+                return;
+            }
+
+            Path workflowPath =
+                    Path.of(args[1]);
+
+            Path configPath =
+                    Path.of(args[3]);
+
+            executeWorkflow(
+                    workflowPath,
+                    configPath
             );
 
-            printUsage();
+            return;
+        }
+
+
+        // =====================================================
+        // REPROCESS
+        // =====================================================
+
+        if (args[0].equals("reprocess")) {
+
+            if (args.length < 5 ||
+                    !args[3].equals("--config")) {
+
+                printUsage();
+
+                return;
+            }
+
+            Path workflowPath =
+                    Path.of(args[1]);
+
+            UUID taskId;
+
+            try {
+
+                taskId =
+                        UUID.fromString(
+                                args[2]
+                        );
+
+            } catch (IllegalArgumentException e) {
+
+                System.out.println(
+                        "Invalid task ID: "
+                                + args[2]
+                );
+
+                return;
+            }
+
+            Path configPath =
+                    Path.of(args[4]);
+
+            reprocessTask(
+                    workflowPath,
+                    taskId,
+                    configPath
+            );
 
             return;
         }
 
 
-        // -----------------------------
-        // 2. Validate arguments
-        // -----------------------------
+        // =====================================================
+        // UNKNOWN COMMAND
+        // =====================================================
 
-        if (args.length < 4 ||
-                !args[2].equals("--config")) {
+        System.out.println(
+                "Unknown command: "
+                        + args[0]
+        );
 
-            printUsage();
+        printUsage();
+    }
 
-            return;
-        }
 
-        Path workflowPath =
-                Path.of(args[1]);
-
-        Path configPath =
-                Path.of(args[3]);
-
+    private void executeWorkflow(
+            Path workflowPath,
+            Path configPath) {
 
         // -----------------------------
-        // 3. Load configuration
+        // Load configuration
         // -----------------------------
 
         TaskFlowConfigLoader configLoader =
@@ -105,7 +157,7 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 4. Load workflow
+        // Load workflow
         // -----------------------------
 
         WorkflowLoader workflowLoader =
@@ -123,7 +175,7 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 5. Create execution engine
+        // Execution engine
         // -----------------------------
 
         ExecutionEngine engine =
@@ -133,11 +185,8 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 6. Discover workers
+        // Discover workers
         // -----------------------------
-
-        WorkerRegistry registry =
-                new WorkerRegistry();
 
         registry.discover(
                 config.getWorker().getHost()
@@ -145,7 +194,7 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 7. Retry policy
+        // Retry policy
         // -----------------------------
 
         RetryPolicy retryPolicy =
@@ -153,15 +202,7 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 8. Dead Letter Queue
-        // -----------------------------
-
-       // DeadLetterQueue dlq =
-           //     new InMemoryDeadLetterQueue();
-
-
-        // -----------------------------
-        // 9. Create executor
+        // Executor
         // -----------------------------
 
         WorkflowExecutor executor =
@@ -176,16 +217,97 @@ public class TaskFlowCLI {
 
 
         // -----------------------------
-        // 10. Execute
+        // Execute
         // -----------------------------
 
         executor.execute();
-
-        factory.destroy();
     }
 
 
-    private static void printUsage() {
+    private void reprocessTask(
+            Path workflowPath,
+            UUID taskId,
+            Path configPath) {
+
+        // -----------------------------
+        // Load configuration
+        // -----------------------------
+
+        TaskFlowConfigLoader configLoader =
+                new TaskFlowConfigLoader();
+
+        TaskFlowConfig config =
+                configLoader.load(
+                        configPath
+                );
+
+
+        // -----------------------------
+        // Load workflow
+        // -----------------------------
+
+        WorkflowLoader workflowLoader =
+                new WorkflowLoader();
+
+        Workflow workflow =
+                workflowLoader.load(
+                        workflowPath
+                );
+
+
+        // -----------------------------
+        // Execution engine
+        // -----------------------------
+
+        ExecutionEngine engine =
+                new ExecutionEngine(
+                        workflow
+                );
+
+
+        // -----------------------------
+        // Discover workers
+        // -----------------------------
+
+        registry.discover(
+                config.getWorker().getHost()
+        );
+
+
+        // -----------------------------
+        // Retry policy
+        // -----------------------------
+
+        RetryPolicy retryPolicy =
+                new RetryPolicy(3);
+
+
+        // -----------------------------
+        // Executor
+        // -----------------------------
+
+        WorkflowExecutor executor =
+                new WorkflowExecutor(
+                        engine,
+                        registry,
+                        retryPolicy,
+                        dlq,
+                        scheduler,
+                        executionStore
+                );
+
+
+        // -----------------------------
+        // Reprocess
+        // -----------------------------
+
+        executor.reprocess(
+                taskId
+        );
+    }
+
+
+    private void printUsage() {
 
         System.out.println(
                 "Usage:"
@@ -193,6 +315,10 @@ public class TaskFlowCLI {
 
         System.out.println(
                 "  taskflow run <workflow-file> --config <config-file>"
+        );
+
+        System.out.println(
+                "  taskflow reprocess <workflow-file> <task-id> --config <config-file>"
         );
     }
 }

@@ -29,6 +29,19 @@ public class WorkflowNode {
         this.dependents = new ArrayList<>();
     }
 
+    public WorkflowNode(
+            UUID id,
+            String workerId) {
+
+        this.id = id;
+
+        this.workerId = workerId;
+
+        this.dependencies = new ArrayList<>();
+
+        this.dependents = new ArrayList<>();
+    }
+
     public TaskStatus getStatus() {
 
         return status;
