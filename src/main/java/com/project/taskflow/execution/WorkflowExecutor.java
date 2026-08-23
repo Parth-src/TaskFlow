@@ -72,6 +72,8 @@ public class WorkflowExecutor {
 
         while (true) {
 
+            scheduler.recoverExpired();
+
             List<UUID> taskIds =
                     scheduler.nextTasks(100);
 
@@ -165,6 +167,8 @@ public class WorkflowExecutor {
                                             engine.completeTask(node);
                                         }
 
+                                        scheduler.complete(taskId);
+
                                         break;
                                     }
 
@@ -190,6 +194,8 @@ public class WorkflowExecutor {
                                             );
                                         }
 
+                                        scheduler.complete(taskId);
+
                                         break;
                                     }
 
@@ -211,6 +217,8 @@ public class WorkflowExecutor {
                                                     response.getMessage()
                                             );
                                         }
+
+                                        scheduler.complete(taskId);
 
                                         break;
                                     }

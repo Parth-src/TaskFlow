@@ -15,4 +15,10 @@ public interface TaskQueue {
     );
 
     long size();
+
+    void complete(
+            UUID taskId
+    );
+
+    void recoverExpired();
 }

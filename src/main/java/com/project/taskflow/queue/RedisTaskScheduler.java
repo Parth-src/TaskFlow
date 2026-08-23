@@ -14,6 +14,7 @@ public class RedisTaskScheduler
         this.queue = queue;
     }
 
+
     @Override
     public void schedule(
             UUID taskId,
@@ -25,6 +26,7 @@ public class RedisTaskScheduler
         );
     }
 
+
     @Override
     public List<UUID> nextTasks(
             int maxTasks) {
@@ -32,5 +34,22 @@ public class RedisTaskScheduler
         return queue.poll(
                 maxTasks
         );
+    }
+
+
+    @Override
+    public void complete(
+            UUID taskId) {
+
+        queue.complete(
+                taskId
+        );
+    }
+
+
+    @Override
+    public void recoverExpired() {
+
+        queue.recoverExpired();
     }
 }

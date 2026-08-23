@@ -3,8 +3,10 @@ package com.project.taskflow.workflow;
 import com.project.taskflow.model.Workflow;
 import com.project.taskflow.model.WorkflowNode;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class WorkflowDefinitionBuilder {
 
@@ -19,12 +21,37 @@ public class WorkflowDefinitionBuilder {
         Map<String, WorkflowNode> nodes =
                 new HashMap<>();
 
+
+        // ==========================================
         // Create all nodes first
+        // ==========================================
+
         for (TaskDefinition task :
                 definition.getTasks()) {
 
+            /*
+             * Generate a deterministic UUID from:
+             *
+             * workflow name + task ID
+             *
+             * The same workflow/task combination
+             * will therefore always receive the
+             * same UUID across application restarts.
+             */
+            UUID taskId =
+                    UUID.nameUUIDFromBytes(
+                            (
+                                    definition.getName()
+                                            + ":"
+                                            + task.getId()
+                            ).getBytes(
+                                    StandardCharsets.UTF_8
+                            )
+                    );
+
             WorkflowNode node =
                     new WorkflowNode(
+                            taskId,
                             task.getWorker()
                     );
 
@@ -36,14 +63,21 @@ public class WorkflowDefinitionBuilder {
             workflow.addNode(node);
         }
 
+
+        // ==========================================
         // Connect dependencies
+        // ==========================================
+
         for (TaskDefinition task :
                 definition.getTasks()) {
 
             WorkflowNode current =
-                    nodes.get(task.getId());
+                    nodes.get(
+                            task.getId()
+                    );
 
             if (task.getDependsOn() == null) {
+
                 continue;
             }
 
@@ -51,7 +85,9 @@ public class WorkflowDefinitionBuilder {
                     task.getDependsOn()) {
 
                 WorkflowNode dependency =
-                        nodes.get(dependencyId);
+                        nodes.get(
+                                dependencyId
+                        );
 
                 if (dependency == null) {
 

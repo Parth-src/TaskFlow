@@ -10,6 +10,13 @@ public interface TaskScheduler {
             long availableAt
     );
 
+    List<UUID> nextTasks(
+            int maxTasks
+    );
 
-    List<UUID> nextTasks(int maxTasks);
+    void complete(
+            UUID taskId
+    );
+
+    void recoverExpired();
 }

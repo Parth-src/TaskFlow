@@ -18,17 +18,19 @@ public class WorkflowNode {
 
     private TaskStatus status;
 
+
+    // Creates a new task with a new ID
     public WorkflowNode(String workerId) {
 
-        this.id = UUID.randomUUID();
-
-        this.workerId = workerId;
-
-        this.dependencies = new ArrayList<>();
-
-        this.dependents = new ArrayList<>();
+        this(
+                UUID.randomUUID(),
+                workerId
+        );
     }
 
+
+    // Reconstructs an existing task with its
+    // previously persisted ID
     public WorkflowNode(
             UUID id,
             String workerId) {
@@ -37,15 +39,19 @@ public class WorkflowNode {
 
         this.workerId = workerId;
 
-        this.dependencies = new ArrayList<>();
+        this.dependencies =
+                new ArrayList<>();
 
-        this.dependents = new ArrayList<>();
+        this.dependents =
+                new ArrayList<>();
     }
+
 
     public TaskStatus getStatus() {
 
         return status;
     }
+
 
     public void setStatus(
             TaskStatus status) {
@@ -53,30 +59,38 @@ public class WorkflowNode {
         this.status = status;
     }
 
-    public void addDependency(WorkflowNode node) {
+
+    public void addDependency(
+            WorkflowNode node) {
 
         dependencies.add(node);
     }
 
-    public void addDependent(WorkflowNode node) {
+
+    public void addDependent(
+            WorkflowNode node) {
 
         dependents.add(node);
     }
+
 
     public String getWorkerId() {
 
         return workerId;
     }
 
+
     public List<WorkflowNode> getDependencies() {
 
         return dependencies;
     }
 
+
     public List<WorkflowNode> getDependents() {
 
         return dependents;
     }
+
 
     public UUID getId() {
 
