@@ -8,6 +8,7 @@ import java.util.UUID;
 public interface ExecutionMonitor {
 
     TaskExecution getTask(
+            String executionId,
             UUID taskId
     );
 

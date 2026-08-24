@@ -30,16 +30,23 @@ public class RedisExecutionStoreTest {
             UUID taskId =
                     UUID.randomUUID();
 
+            String executionId =
+                    UUID.randomUUID().toString();
+
             TaskExecution execution =
                     new TaskExecution(
                             taskId,
                             "payment-flow",
-                            UUID.randomUUID().toString(),
+                            executionId,
                             "payment"
                     );
 
             System.out.println(
                     "Task ID: " + taskId
+            );
+
+            System.out.println(
+                    "Execution ID: " + executionId
             );
 
             store.save(execution);
@@ -48,13 +55,19 @@ public class RedisExecutionStoreTest {
                     "Task saved."
             );
 
-            store.markRunning(taskId);
+            store.markRunning(
+                    executionId,
+                    taskId
+            );
 
             System.out.println(
                     "Task marked RUNNING."
             );
 
-            store.markCompleted(taskId);
+            store.markCompleted(
+                    executionId,
+                    taskId
+            );
 
             System.out.println(
                     "Task marked COMPLETED."
@@ -66,7 +79,10 @@ public class RedisExecutionStoreTest {
 
             redis.opsForHash()
                     .entries(
-                            "taskflow:task:" + taskId
+                            "taskflow:execution:"
+                                    + executionId
+                                    + ":task:"
+                                    + taskId
                     )
                     .forEach(
                             (key, value) ->

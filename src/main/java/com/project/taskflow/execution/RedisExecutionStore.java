@@ -19,25 +19,48 @@ public class RedisExecutionStore
         this.redis = redis;
     }
 
-    private String key(UUID taskId) {
+    private String key(
+            String executionId,
+            UUID taskId) {
 
-        return "taskflow:task:" + taskId;
+        return "taskflow:execution:"
+                + executionId
+                + ":task:"
+                + taskId;
+    }
+
+    private String indexKey(
+            String executionId) {
+
+        return "taskflow:execution:"
+                + executionId
+                + ":tasks";
     }
 
     @Override
-    public void save(TaskExecution execution) {
+    public void save(
+            TaskExecution execution) {
+
+        String executionId =
+                execution.getExecutionId();
+
+        UUID taskId =
+                execution.getTaskId();
 
         redis.opsForHash().putAll(
-                key(execution.getTaskId()),
+                key(
+                        executionId,
+                        taskId
+                ),
                 Map.of(
                         "taskId",
-                        execution.getTaskId().toString(),
+                        taskId.toString(),
 
                         "workflowId",
                         execution.getWorkflowId(),
 
                         "executionId",
-                        execution.getExecutionId(),
+                        executionId,
 
                         "workerId",
                         execution.getWorkerId(),
@@ -53,26 +76,46 @@ public class RedisExecutionStore
                         "createdAt",
                         execution.getCreatedAt().toString()
                 )
-
         );
 
         redis.opsForSet().add(
-                "taskflow:execution:"
-                        + execution.getExecutionId()
-                        + ":tasks",
-                execution.getTaskId().toString()
+                indexKey(executionId),
+                taskId.toString()
         );
     }
 
     @Override
-    public TaskExecution get(UUID taskId) {
+    public TaskExecution get(
+            String executionId,
+            UUID taskId) {
+
+        String redisKey =
+                key(
+                        executionId,
+                        taskId
+                );
+
+        System.out.println(
+                "Looking up Redis key: "
+                        + redisKey
+        );
 
         Map<Object, Object> data =
                 redis.opsForHash().entries(
-                        key(taskId)
+                        redisKey
                 );
 
+        System.out.println(
+                "Redis data: "
+                        + data
+        );
+
         if (data.isEmpty()) {
+
+            System.out.println(
+                    "NO EXECUTION RECORD FOUND"
+            );
+
             return null;
         }
 
@@ -116,79 +159,107 @@ public class RedisExecutionStore
     }
 
     @Override
-    public void markRunning(UUID taskId) {
+    public void markRunning(
+            String executionId,
+            UUID taskId) {
+
+        String key =
+                key(
+                        executionId,
+                        taskId
+                );
 
         redis.opsForHash().put(
-                key(taskId),
+                key,
                 "status",
                 "RUNNING"
         );
 
         redis.opsForHash().put(
-                key(taskId),
+                key,
                 "startedAt",
                 Instant.now().toString()
         );
 
         redis.opsForHash().increment(
-                key(taskId),
+                key,
                 "attempt",
                 1
+        );
+
+        redis.opsForHash().delete(
+                key,
+                "error"
         );
     }
 
     @Override
     public void markCompleted(
+            String executionId,
             UUID taskId) {
 
+        String key =
+                key(
+                        executionId,
+                        taskId
+                );
+
         redis.opsForHash().put(
-                key(taskId),
+                key,
                 "status",
                 "COMPLETED"
         );
 
         redis.opsForHash().put(
-                key(taskId),
+                key,
+                "completedAt",
+                Instant.now().toString()
+        );
+
+        redis.opsForHash().delete(
+                key,
+                "error"
+        );
+    }
+
+    @Override
+    public void markFailed(
+            String executionId,
+            UUID taskId,
+            String reason) {
+
+        String key =
+                key(
+                        executionId,
+                        taskId
+                );
+
+        redis.opsForHash().put(
+                key,
+                "status",
+                "FAILED"
+        );
+
+        redis.opsForHash().put(
+                key,
+                "error",
+                reason
+        );
+
+        redis.opsForHash().put(
+                key,
                 "completedAt",
                 Instant.now().toString()
         );
     }
 
     @Override
-    public void markFailed(
-            UUID taskId,
-            String reason) {
-
-        redis.opsForHash().put(
-                key(taskId),
-                "status",
-                "FAILED"
-        );
-
-        redis.opsForHash().put(
-                key(taskId),
-                "error",
-                reason
-        );
-
-        redis.opsForHash().put(
-                key(taskId),
-                "completedAt",
-                Instant.now().toString()
-        );
-    }
-
     public List<TaskExecution> getByExecutionId(
             String executionId) {
 
-        String indexKey =
-                "taskflow:execution:"
-                        + executionId
-                        + ":tasks";
-
         var taskIds =
                 redis.opsForSet().members(
-                        indexKey
+                        indexKey(executionId)
                 );
 
         if (taskIds == null ||
@@ -200,10 +271,12 @@ public class RedisExecutionStore
         List<TaskExecution> executions =
                 new ArrayList<>();
 
-        for (String taskId : taskIds) {
+        for (String taskId :
+                taskIds) {
 
             TaskExecution execution =
                     get(
+                            executionId,
                             UUID.fromString(taskId)
                     );
 

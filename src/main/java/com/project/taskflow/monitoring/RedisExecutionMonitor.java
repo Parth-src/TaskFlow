@@ -3,7 +3,6 @@ package com.project.taskflow.monitoring;
 import com.project.taskflow.execution.RedisExecutionStore;
 import com.project.taskflow.execution.TaskExecution;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,9 +19,13 @@ public class RedisExecutionMonitor
 
     @Override
     public TaskExecution getTask(
+            String executionId,
             UUID taskId) {
 
-        return store.get(taskId);
+        return store.get(
+                executionId,
+                taskId
+        );
     }
 
     @Override

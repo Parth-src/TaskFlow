@@ -25,11 +25,15 @@ public class MonitoringController {
                 workerMonitor;
     }
 
-    @GetMapping("/tasks/{taskId}")
+    @GetMapping(
+            "/executions/{executionId}/tasks/{taskId}"
+    )
     public TaskExecution getTask(
+            @PathVariable String executionId,
             @PathVariable UUID taskId) {
 
         return executionMonitor.getTask(
+                executionId,
                 taskId
         );
     }

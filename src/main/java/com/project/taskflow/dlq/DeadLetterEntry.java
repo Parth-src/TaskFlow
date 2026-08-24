@@ -19,23 +19,52 @@ public class DeadLetterEntry {
 
     private final WorkflowNode node;
 
+
+    /*
+     * Used when creating a new DLQ entry.
+     */
     public DeadLetterEntry(
             WorkflowNode node,
             int attemptCount,
             String reason) {
 
+        this(
+                node,
+                attemptCount,
+                reason,
+                Instant.now()
+        );
+    }
+
+
+    /*
+     * Used when reconstructing an existing
+     * DLQ entry from storage.
+     */
+    public DeadLetterEntry(
+            WorkflowNode node,
+            int attemptCount,
+            String reason,
+            Instant timestamp) {
+
         this.node = node;
 
-        this.taskId = node.getId();
+        this.taskId =
+                node.getId();
 
-        this.workerId = node.getWorkerId();
+        this.workerId =
+                node.getWorkerId();
 
-        this.attemptCount = attemptCount;
+        this.attemptCount =
+                attemptCount;
 
-        this.reason = reason;
+        this.reason =
+                reason;
 
-        this.timestamp = Instant.now();
+        this.timestamp =
+                timestamp;
     }
+
 
     public UUID getTaskId() {
         return taskId;

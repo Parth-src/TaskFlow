@@ -2,10 +2,16 @@ package com.project.taskflow.dlq;
 
 import com.project.taskflow.execution.TaskExecutionState;
 import com.project.taskflow.model.WorkflowNode;
+
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class RedisDeadLetterQueue
         implements DeadLetterQueue {
@@ -15,16 +21,19 @@ public class RedisDeadLetterQueue
 
     private final StringRedisTemplate redis;
 
+
     public RedisDeadLetterQueue(
             StringRedisTemplate redis) {
 
         this.redis = redis;
     }
 
+
     private String key(UUID taskId) {
 
         return "taskflow:dlq:" + taskId;
     }
+
 
     @Override
     public void enqueue(
@@ -32,7 +41,11 @@ public class RedisDeadLetterQueue
             TaskExecutionState state,
             String reason) {
 
-        UUID taskId = node.getId();
+        UUID taskId =
+                node.getId();
+
+        Instant timestamp =
+                Instant.now();
 
         Map<String, String> data =
                 new HashMap<>();
@@ -61,18 +74,21 @@ public class RedisDeadLetterQueue
 
         data.put(
                 "timestamp",
-                Instant.now().toString()
+                timestamp.toString()
         );
+
 
         redis.opsForHash().putAll(
                 key(taskId),
                 data
         );
 
+
         redis.opsForSet().add(
                 INDEX,
                 taskId.toString()
         );
+
 
         System.out.println(
                 "Task moved to Redis DLQ: "
@@ -80,11 +96,14 @@ public class RedisDeadLetterQueue
         );
     }
 
+
     @Override
     public List<DeadLetterEntry> getEntries() {
 
         Set<String> taskIds =
-                redis.opsForSet().members(INDEX);
+                redis.opsForSet().members(
+                        INDEX
+                );
 
         if (taskIds == null ||
                 taskIds.isEmpty()) {
@@ -92,15 +111,19 @@ public class RedisDeadLetterQueue
             return List.of();
         }
 
+
         List<DeadLetterEntry> entries =
                 new ArrayList<>();
+
 
         for (String taskId :
                 taskIds) {
 
             DeadLetterEntry entry =
                     get(
-                            UUID.fromString(taskId)
+                            UUID.fromString(
+                                    taskId
+                            )
                     );
 
             if (entry != null) {
@@ -109,8 +132,10 @@ public class RedisDeadLetterQueue
             }
         }
 
+
         return entries;
     }
+
 
     @Override
     public DeadLetterEntry get(
@@ -127,10 +152,12 @@ public class RedisDeadLetterQueue
             return null;
         }
 
+
         String workerId =
                 (String) data.get(
                         "workerId"
                 );
+
 
         int attemptCount =
                 Integer.parseInt(
@@ -139,10 +166,18 @@ public class RedisDeadLetterQueue
                         )
                 );
 
+
         String reason =
                 (String) data.get(
                         "reason"
                 );
+
+
+        String timestamp =
+                (String) data.get(
+                        "timestamp"
+                );
+
 
         /*
          * For now we reconstruct a minimal
@@ -155,15 +190,21 @@ public class RedisDeadLetterQueue
                         workerId
                 );
 
+
         DeadLetterEntry entry =
                 new DeadLetterEntry(
                         node,
                         attemptCount,
-                        reason
+                        reason,
+                        Instant.parse(
+                                timestamp
+                        )
                 );
+
 
         return entry;
     }
+
 
     @Override
     public void remove(

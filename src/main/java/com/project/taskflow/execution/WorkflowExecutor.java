@@ -70,6 +70,10 @@ public class WorkflowExecutor {
         String executionId =
                 UUID.randomUUID().toString();
 
+        System.out.println(
+                "Execution ID: " + executionId
+        );
+
 
         while (true) {
 
@@ -124,7 +128,10 @@ public class WorkflowExecutor {
                                         );
                                 while (true) {
 
-                                    executionStore.markRunning(taskId);
+                                    executionStore.markRunning(
+                                            executionId,
+                                            taskId
+                                    );
 
                                     state.incrementAttempt();
 
@@ -161,7 +168,10 @@ public class WorkflowExecutor {
 
                                     if (response.isSuccess()) {
 
-                                        executionStore.markCompleted(taskId);
+                                        executionStore.markCompleted(
+                                                executionId,
+                                                taskId
+                                        );
 
                                         synchronized (engine) {
 
@@ -180,6 +190,7 @@ public class WorkflowExecutor {
                                     if (!response.shouldRetry()) {
 
                                         executionStore.markFailed(
+                                                executionId,
                                                 taskId,
                                                 response.getMessage()
                                         );
@@ -204,6 +215,7 @@ public class WorkflowExecutor {
                                             >= retryPolicy.getMaxRetries()) {
 
                                         executionStore.markFailed(
+                                                executionId,
                                                 taskId,
                                                 response.getMessage()
                                         );
