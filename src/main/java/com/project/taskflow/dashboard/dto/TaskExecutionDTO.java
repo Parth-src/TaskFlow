@@ -2,6 +2,7 @@ package com.project.taskflow.dashboard.dto;
 
 import com.project.taskflow.execution.TaskExecution;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -17,6 +18,7 @@ public class TaskExecutionDTO {
     private final Instant startedAt;
     private final Instant completedAt;
     private final String error;
+    private final Long durationMs;
 
     public TaskExecutionDTO(
             TaskExecution execution) {
@@ -50,6 +52,21 @@ public class TaskExecutionDTO {
 
         this.error =
                 execution.getError();
+
+        // Calculate task execution duration
+        if (startedAt != null &&
+                completedAt != null) {
+
+            this.durationMs =
+                    Duration.between(
+                            startedAt,
+                            completedAt
+                    ).toMillis();
+
+        } else {
+
+            this.durationMs = null;
+        }
     }
 
     public UUID getTaskId() {
@@ -90,5 +107,9 @@ public class TaskExecutionDTO {
 
     public String getError() {
         return error;
+    }
+
+    public Long getDurationMs() {
+        return durationMs;
     }
 }

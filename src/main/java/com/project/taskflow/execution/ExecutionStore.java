@@ -5,9 +5,7 @@ import java.util.UUID;
 
 public interface ExecutionStore {
 
-    void save(
-            TaskExecution execution
-    );
+    void save(TaskExecution execution);
 
     TaskExecution get(
             String executionId,
@@ -16,6 +14,10 @@ public interface ExecutionStore {
 
     List<TaskExecution> getByExecutionId(
             String executionId
+    );
+
+    List<TaskExecution> getRecentExecutions(
+            int limit
     );
 
     void markRunning(

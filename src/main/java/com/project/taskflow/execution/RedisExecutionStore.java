@@ -12,6 +12,8 @@ public class RedisExecutionStore
         implements ExecutionStore {
 
     private final StringRedisTemplate redis;
+    private static final String EXECUTION_INDEX =
+            "taskflow:executions";
 
     public RedisExecutionStore(
             StringRedisTemplate redis) {
@@ -81,6 +83,12 @@ public class RedisExecutionStore
         redis.opsForSet().add(
                 indexKey(executionId),
                 taskId.toString()
+        );
+
+        redis.opsForZSet().add(
+                EXECUTION_INDEX,
+                execution.getExecutionId(),
+                execution.getCreatedAt().toEpochMilli()
         );
     }
 
@@ -283,6 +291,55 @@ public class RedisExecutionStore
             if (execution != null) {
 
                 executions.add(execution);
+            }
+        }
+
+        return executions;
+    }
+
+    @Override
+    public List<TaskExecution> getRecentExecutions(
+            int limit) {
+
+        if (limit <= 0) {
+            return List.of();
+        }
+
+        var executionIds =
+                redis.opsForZSet()
+                        .reverseRange(
+                                EXECUTION_INDEX,
+                                0,
+                                limit - 1
+                        );
+
+        if (executionIds == null ||
+                executionIds.isEmpty()) {
+
+            return List.of();
+        }
+
+        List<TaskExecution> executions =
+                new ArrayList<>();
+
+        for (String executionId :
+                executionIds) {
+
+            List<TaskExecution> tasks =
+                    getByExecutionId(
+                            executionId
+                    );
+
+            /*
+             * One execution contains multiple tasks.
+             * We only need one task here to represent
+             * the execution in the execution list.
+             */
+            if (!tasks.isEmpty()) {
+
+                executions.add(
+                        tasks.get(0)
+                );
             }
         }
 

@@ -1,5 +1,6 @@
 package com.project.taskflow.dashboard;
 
+import com.project.taskflow.dashboard.dto.ExecutionSummaryDTO;
 import com.project.taskflow.dashboard.dto.TaskExecutionDTO;
 import com.project.taskflow.execution.ExecutionStore;
 import com.project.taskflow.worker.WorkerMetadata;
@@ -44,6 +45,16 @@ public class DashboardService {
                 )
                 .stream()
                 .map(TaskExecutionDTO::new)
+                .toList();
+    }
+
+    public List<ExecutionSummaryDTO> getRecentExecutions(
+            int limit) {
+
+        return executionStore
+                .getRecentExecutions(limit)
+                .stream()
+                .map(ExecutionSummaryDTO::new)
                 .toList();
     }
 

@@ -1,15 +1,13 @@
 package com.project.taskflow.dashboard;
 
+import com.project.taskflow.dashboard.dto.ExecutionSummaryDTO;
 import com.project.taskflow.dashboard.dto.TaskExecutionDTO;
 import com.project.taskflow.worker.WorkerMetadata;
 import com.project.taskflow.worker.WorkerRegistry;
 
 import com.project.taskflow.execution.ExecutionStore;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -45,6 +43,15 @@ public class DashboardController {
 
         return dashboardService.getExecution(
                 executionId
+        );
+    }
+
+    @GetMapping("/executions")
+    public List<ExecutionSummaryDTO> getRecentExecutions(
+            @RequestParam(defaultValue = "20") int limit) {
+
+        return dashboardService.getRecentExecutions(
+                limit
         );
     }
 
