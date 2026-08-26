@@ -17,13 +17,15 @@ public class InMemoryDeadLetterQueue
     public void enqueue(
             WorkflowNode node,
             TaskExecutionState state,
-            String reason) {
+            String reason,
+            UUID projectId) {
 
         DeadLetterEntry entry =
                 new DeadLetterEntry(
                         node,
                         state.getAttemptCount(),
-                        reason
+                        reason,
+                        projectId
                 );
 
         failedTasks.add(entry);
@@ -36,6 +38,11 @@ public class InMemoryDeadLetterQueue
         System.out.println(
                 "Task ID: "
                         + entry.getTaskId()
+        );
+
+        System.out.println(
+                "Project ID: "
+                        + entry.getProjectId()
         );
 
         System.out.println(

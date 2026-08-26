@@ -3,6 +3,7 @@ package com.project.taskflow.credential;
 import com.project.taskflow.credential.dto.ApiKeyDTO;
 import com.project.taskflow.credential.dto.CreatedApiKeyResponse;
 import com.project.taskflow.project.Project;
+import com.project.taskflow.project.ProjectAuthorizationService;
 import com.project.taskflow.project.ProjectRepository;
 
 import org.springframework.stereotype.Service;
@@ -14,21 +15,21 @@ import java.util.UUID;
 public class ProjectCredentialService {
 
     private final ProjectCredentialRepository credentialRepository;
-    private final ProjectRepository projectRepository;
     private final ApiKeyGenerator keyGenerator;
     private final ApiKeyHasher keyHasher;
+    private final ProjectAuthorizationService authorizationService;
 
     public ProjectCredentialService(
             ProjectCredentialRepository credentialRepository,
-            ProjectRepository projectRepository,
+            ProjectAuthorizationService authorizationService,
             ApiKeyGenerator keyGenerator,
             ApiKeyHasher keyHasher) {
 
         this.credentialRepository =
                 credentialRepository;
 
-        this.projectRepository =
-                projectRepository;
+        this.authorizationService =
+                authorizationService;
 
         this.keyGenerator =
                 keyGenerator;
@@ -39,17 +40,30 @@ public class ProjectCredentialService {
 
     public CreatedApiKeyResponse create(
             UUID projectId,
+            UUID userId,
             String name,
             CredentialEnvironment environment) {
 
         Project project =
-                projectRepository
-                        .findById(projectId)
-                        .orElseThrow(
-                                () -> new RuntimeException(
-                                        "Project not found"
-                                )
-                        );
+                authorizationService.getOwnedProject(
+                        projectId,
+                        userId
+                );
+
+        if (name == null ||
+                name.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Credential name is required"
+            );
+        }
+
+        if (environment == null) {
+
+            throw new IllegalArgumentException(
+                    "Credential environment is required"
+            );
+        }
 
         String apiKey =
                 keyGenerator.generate(
@@ -64,7 +78,7 @@ public class ProjectCredentialService {
         ProjectCredential credential =
                 new ProjectCredential(
                         project,
-                        name,
+                        name.trim(),
                         keyHash,
                         environment
                 );
@@ -83,7 +97,13 @@ public class ProjectCredentialService {
     }
 
     public List<ApiKeyDTO> getAll(
-            UUID projectId) {
+            UUID projectId,
+            UUID userId) {
+
+        authorizationService.getOwnedProject(
+                projectId,
+                userId
+        );
 
         return credentialRepository
                 .findByProjectId(projectId)
@@ -94,13 +114,17 @@ public class ProjectCredentialService {
 
     public void revoke(
             UUID projectId,
-            UUID credentialId) {
+            UUID credentialId,
+            UUID userId) {
+
+        authorizationService.getOwnedProject(
+                projectId,
+                userId
+        );
 
         ProjectCredential credential =
                 credentialRepository
-                        .findById(
-                                credentialId
-                        )
+                        .findById(credentialId)
                         .orElseThrow(
                                 () -> new RuntimeException(
                                         "Credential not found"

@@ -12,8 +12,12 @@ public class RedisExecutionStore
         implements ExecutionStore {
 
     private final StringRedisTemplate redis;
+
     private static final String EXECUTION_INDEX =
             "taskflow:executions";
+
+    private static final String PROJECT_EXECUTION_INDEX =
+            "taskflow:project:executions:";
 
     public RedisExecutionStore(
             StringRedisTemplate redis) {
@@ -67,6 +71,9 @@ public class RedisExecutionStore
                         "workerId",
                         execution.getWorkerId(),
 
+                        "projectId",
+                        execution.getProjectId().toString(),
+
                         "status",
                         execution.getStatus(),
 
@@ -80,15 +87,33 @@ public class RedisExecutionStore
                 )
         );
 
+        /*
+         * Index tasks belonging to this execution.
+         */
         redis.opsForSet().add(
                 indexKey(executionId),
                 taskId.toString()
         );
 
+        /*
+         * Global execution index.
+         */
         redis.opsForZSet().add(
                 EXECUTION_INDEX,
                 execution.getExecutionId(),
-                execution.getCreatedAt().toEpochMilli()
+                execution.getCreatedAt()
+                        .toEpochMilli()
+        );
+
+        /*
+         * Project-specific execution index.
+         */
+        redis.opsForZSet().add(
+                PROJECT_EXECUTION_INDEX
+                        + execution.getProjectId(),
+                execution.getExecutionId(),
+                execution.getCreatedAt()
+                        .toEpochMilli()
         );
     }
 
@@ -137,6 +162,10 @@ public class RedisExecutionStore
                 (String) data.get("executionId"),
 
                 (String) data.get("workerId"),
+
+                UUID.fromString(
+                        (String) data.get("projectId")
+                ),
 
                 (String) data.get("status"),
 
@@ -299,6 +328,7 @@ public class RedisExecutionStore
 
     @Override
     public List<TaskExecution> getRecentExecutions(
+            UUID projectId,
             int limit) {
 
         if (limit <= 0) {
@@ -308,7 +338,8 @@ public class RedisExecutionStore
         var executionIds =
                 redis.opsForZSet()
                         .reverseRange(
-                                EXECUTION_INDEX,
+                                PROJECT_EXECUTION_INDEX
+                                        + projectId,
                                 0,
                                 limit - 1
                         );
@@ -330,11 +361,6 @@ public class RedisExecutionStore
                             executionId
                     );
 
-            /*
-             * One execution contains multiple tasks.
-             * We only need one task here to represent
-             * the execution in the execution list.
-             */
             if (!tasks.isEmpty()) {
 
                 executions.add(

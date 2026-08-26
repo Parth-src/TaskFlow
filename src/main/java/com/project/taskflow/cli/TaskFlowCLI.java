@@ -2,6 +2,8 @@ package com.project.taskflow.cli;
 
 import com.project.taskflow.config.TaskFlowConfig;
 import com.project.taskflow.config.TaskFlowConfigLoader;
+import com.project.taskflow.credential.ApiKeyAuthenticationService;
+import com.project.taskflow.credential.ProjectCredential;
 import com.project.taskflow.dlq.DeadLetterQueue;
 import com.project.taskflow.execution.ExecutionEngine;
 import com.project.taskflow.execution.ExecutionStore;
@@ -25,17 +27,21 @@ public class TaskFlowCLI implements CommandLineRunner {
     private final DeadLetterQueue dlq;
     private final TaskScheduler scheduler;
     private final ExecutionStore executionStore;
+    private final ApiKeyAuthenticationService authenticationService;
 
     public TaskFlowCLI(
             WorkerRegistry registry,
             DeadLetterQueue dlq,
             TaskScheduler scheduler,
-            ExecutionStore executionStore) {
+            ExecutionStore executionStore,
+            ApiKeyAuthenticationService authenticationService) {
 
         this.registry = registry;
         this.dlq = dlq;
         this.scheduler = scheduler;
         this.executionStore = executionStore;
+        this.authenticationService =
+                authenticationService;
     }
 
     @Override
@@ -154,6 +160,25 @@ public class TaskFlowCLI implements CommandLineRunner {
                 configLoader.load(
                         configPath
                 );
+        System.out.println(
+                "Worker token loaded: "
+                        + config.getWorker().getToken()
+        );
+
+        ProjectCredential credential =
+                authenticationService.authenticate(
+                        config.getApiKey()
+                );
+
+        UUID projectId =
+                credential
+                        .getProject()
+                        .getId();
+
+        System.out.println(
+                "Authenticated TaskFlow project: "
+                        + projectId
+        );
 
 
         // -----------------------------
@@ -213,7 +238,8 @@ public class TaskFlowCLI implements CommandLineRunner {
                         dlq,
                         scheduler,
                         executionStore,
-                        config.getWorker().getToken()
+                        config.getWorker().getToken(),
+                        projectId
                 );
 
 
@@ -229,6 +255,8 @@ public class TaskFlowCLI implements CommandLineRunner {
             Path workflowPath,
             UUID taskId,
             Path configPath) {
+
+
 
         // -----------------------------
         // Load configuration
@@ -254,6 +282,21 @@ public class TaskFlowCLI implements CommandLineRunner {
                 workflowLoader.load(
                         workflowPath
                 );
+
+        ProjectCredential credential =
+                authenticationService.authenticate(
+                        config.getApiKey()
+                );
+
+        UUID projectId =
+                credential
+                        .getProject()
+                        .getId();
+
+        System.out.println(
+                "Authenticated TaskFlow project: "
+                        + projectId
+        );
 
 
         // -----------------------------
@@ -295,7 +338,8 @@ public class TaskFlowCLI implements CommandLineRunner {
                         dlq,
                         scheduler,
                         executionStore,
-                        config.getWorker().getToken()
+                        config.getWorker().getToken(),
+                        projectId
                 );
 
 

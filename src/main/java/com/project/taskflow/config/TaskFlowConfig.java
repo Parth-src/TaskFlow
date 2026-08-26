@@ -2,7 +2,19 @@ package com.project.taskflow.config;
 
 public class TaskFlowConfig {
 
+    private String apiKey;
+
     private WorkerConfig worker;
+
+    public String getApiKey() {
+        return apiKey;
+    }
+
+    public void setApiKey(
+            String apiKey) {
+
+        this.apiKey = apiKey;
+    }
 
     public WorkerConfig getWorker() {
         return worker;

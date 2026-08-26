@@ -33,12 +33,16 @@ public class RedisExecutionStoreTest {
             String executionId =
                     UUID.randomUUID().toString();
 
+            UUID projectId =
+                    UUID.randomUUID();
+
             TaskExecution execution =
                     new TaskExecution(
                             taskId,
-                            "payment-flow",
+                            "test-workflow",
                             executionId,
-                            "payment"
+                            "test-worker",
+                            projectId
                     );
 
             System.out.println(
@@ -47,6 +51,10 @@ public class RedisExecutionStoreTest {
 
             System.out.println(
                     "Execution ID: " + executionId
+            );
+
+            System.out.println(
+                    "Project ID: " + projectId
             );
 
             store.save(execution);

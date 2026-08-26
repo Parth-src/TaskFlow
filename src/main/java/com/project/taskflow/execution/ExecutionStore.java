@@ -17,6 +17,7 @@ public interface ExecutionStore {
     );
 
     List<TaskExecution> getRecentExecutions(
+            UUID projectId,
             int limit
     );
 

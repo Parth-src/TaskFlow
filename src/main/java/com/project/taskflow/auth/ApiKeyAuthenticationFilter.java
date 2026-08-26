@@ -1,5 +1,6 @@
 package com.project.taskflow.auth;
 
+import com.project.taskflow.credential.ApiKeyAuthenticationService;
 import com.project.taskflow.credential.ApiKeyHasher;
 import com.project.taskflow.credential.ProjectCredential;
 import com.project.taskflow.credential.ProjectCredentialRepository;
@@ -20,16 +21,21 @@ public class ApiKeyAuthenticationFilter
 
     private final ProjectCredentialRepository credentialRepository;
     private final ApiKeyHasher keyHasher;
+    private final ApiKeyAuthenticationService authenticationService;
 
     public ApiKeyAuthenticationFilter(
             ProjectCredentialRepository credentialRepository,
-            ApiKeyHasher keyHasher) {
+            ApiKeyHasher keyHasher,
+            ApiKeyAuthenticationService authenticationService) {
 
         this.credentialRepository =
                 credentialRepository;
 
         this.keyHasher =
                 keyHasher;
+
+        this.authenticationService =
+                authenticationService;
     }
 
     @Override
@@ -41,20 +47,11 @@ public class ApiKeyAuthenticationFilter
 
         try {
 
-            String authHeader =
-                    request.getHeader(
-                            "Authorization"
-                    );
+            String apiKey =
+                    request.getHeader("X-API-Key");
 
-            /*
-             * No API key.
-             *
-             * We don't reject every request here because
-             * dashboard/authentication endpoints will eventually
-             * use a different authentication mechanism.
-             */
-            if (authHeader == null ||
-                    !authHeader.startsWith("Bearer ")) {
+            if (apiKey == null ||
+                    apiKey.isBlank()) {
 
                 filterChain.doFilter(
                         request,
@@ -64,39 +61,10 @@ public class ApiKeyAuthenticationFilter
                 return;
             }
 
-            String apiKey =
-                    authHeader.substring(
-                            "Bearer ".length()
-                    ).trim();
-
-            if (apiKey.isEmpty()) {
-
-                unauthorized(response);
-
-                return;
-            }
-
-            String hash =
-                    keyHasher.hash(apiKey);
-
             ProjectCredential credential =
-                    credentialRepository
-                            .findByKeyHash(hash)
-                            .orElse(null);
-
-            if (credential == null ||
-                    credential.isRevoked()) {
-
-                unauthorized(response);
-
-                return;
-            }
-
-            credential.markUsed();
-
-            credentialRepository.save(
-                    credential
-            );
+                    authenticationService.authenticate(
+                            apiKey
+                    );
 
             ProjectContext.set(
                     credential

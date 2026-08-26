@@ -11,7 +11,8 @@ public interface DeadLetterQueue {
     void enqueue(
             WorkflowNode node,
             TaskExecutionState state,
-            String reason
+            String reason,
+            UUID projectId
     );
 
     List<DeadLetterEntry> getEntries();

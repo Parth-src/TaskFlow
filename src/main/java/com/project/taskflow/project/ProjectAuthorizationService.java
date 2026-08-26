@@ -1,6 +1,8 @@
 package com.project.taskflow.project;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -22,10 +24,26 @@ public class ProjectAuthorizationService {
         return projectRepository
                 .findById(projectId)
                 .orElseThrow(
-                        () -> new RuntimeException(
+                        () -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
                                 "Project not found"
                         )
                 );
+    }
+
+    public Project getOwnedProject(
+            UUID projectId,
+            UUID userId) {
+
+        Project project =
+                getProject(projectId);
+
+        verifyOwnership(
+                project,
+                userId
+        );
+
+        return project;
     }
 
     public void verifyOwnership(
@@ -36,8 +54,9 @@ public class ProjectAuthorizationService {
                 .getId()
                 .equals(userId)) {
 
-            throw new RuntimeException(
-                    "User does not own this project"
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You do not own this project"
             );
         }
     }

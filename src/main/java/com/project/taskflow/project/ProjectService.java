@@ -29,6 +29,16 @@ public class ProjectService {
             UUID userId,
             String name) {
 
+        if (name == null ||
+                name.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Project name is required"
+            );
+        }
+
+        name = name.trim();
+
         User user =
                 userRepository
                         .findById(userId)

@@ -39,7 +39,8 @@ public class RedisDeadLetterQueue
     public void enqueue(
             WorkflowNode node,
             TaskExecutionState state,
-            String reason) {
+            String reason,
+            UUID projectId) {
 
         UUID taskId =
                 node.getId();
@@ -53,6 +54,11 @@ public class RedisDeadLetterQueue
         data.put(
                 "taskId",
                 taskId.toString()
+        );
+
+        data.put(
+                "projectId",
+                projectId.toString()
         );
 
         data.put(
@@ -77,22 +83,24 @@ public class RedisDeadLetterQueue
                 timestamp.toString()
         );
 
-
         redis.opsForHash().putAll(
                 key(taskId),
                 data
         );
-
 
         redis.opsForSet().add(
                 INDEX,
                 taskId.toString()
         );
 
-
         System.out.println(
                 "Task moved to Redis DLQ: "
                         + taskId
+        );
+
+        System.out.println(
+                "Project ID: "
+                        + projectId
         );
     }
 
@@ -144,6 +152,13 @@ public class RedisDeadLetterQueue
         Map<Object, Object> data =
                 redis.opsForHash().entries(
                         key(taskId)
+                );
+
+        UUID projectId =
+                UUID.fromString(
+                        (String) data.get(
+                                "projectId"
+                        )
                 );
 
         if (data == null ||
@@ -198,7 +213,8 @@ public class RedisDeadLetterQueue
                         reason,
                         Instant.parse(
                                 timestamp
-                        )
+                        ),
+                        projectId
                 );
 
 

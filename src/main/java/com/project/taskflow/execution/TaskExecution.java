@@ -25,11 +25,14 @@ public class TaskExecution {
 
     private String error;
 
+    private final UUID projectId;
+
     public TaskExecution(
             UUID taskId,
             String workflowId,
             String executionId,
-            String workerId) {
+            String workerId,
+            UUID projectId) {
 
         this.taskId = taskId;
         this.workflowId = workflowId;
@@ -39,6 +42,7 @@ public class TaskExecution {
         this.status = "PENDING";
         this.attempt = 0;
         this.createdAt = Instant.now();
+        this.projectId = projectId;
     }
 
     public TaskExecution(
@@ -46,6 +50,7 @@ public class TaskExecution {
             String workflowId,
             String executionId,
             String workerId,
+            UUID projectId,
             String status,
             int attempt,
             Instant createdAt,
@@ -57,6 +62,7 @@ public class TaskExecution {
         this.workflowId = workflowId;
         this.executionId = executionId;
         this.workerId = workerId;
+        this.projectId = projectId;
 
         this.status = status;
         this.attempt = attempt;
@@ -124,5 +130,9 @@ public class TaskExecution {
         this.status = "FAILED";
         this.error = error;
         this.completedAt = Instant.now();
+    }
+
+    public UUID getProjectId() {
+        return projectId;
     }
 }

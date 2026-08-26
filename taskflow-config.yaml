@@ -1,0 +1,5 @@
+apiKey: ${TASKFLOW_API_KEY}
+
+worker:
+  host: http://localhost:8081
+  token: ${WORKER_TOKEN}

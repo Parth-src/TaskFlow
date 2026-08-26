@@ -20,6 +20,7 @@ import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactor
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.nio.file.Path;
+import java.util.UUID;
 
 public class Main {
 
@@ -38,6 +39,9 @@ public class Main {
             return;
         }
 
+        UUID projectId =
+                UUID.randomUUID();
+
         Path workflowPath =
                 Path.of(args[0]);
 
@@ -53,7 +57,9 @@ public class Main {
                 new TaskFlowConfigLoader();
 
         TaskFlowConfig config =
-                configLoader.load(configPath);
+                configLoader.load(
+                        configPath
+                );
 
 
         // -----------------------------
@@ -64,7 +70,9 @@ public class Main {
                 new WorkflowLoader();
 
         Workflow workflow =
-                workflowLoader.load(workflowPath);
+                workflowLoader.load(
+                        workflowPath
+                );
 
         System.out.println(
                 "Loaded workflow: "
@@ -111,12 +119,8 @@ public class Main {
 
 
         // -----------------------------
-        // 8. Create executor
+        // 8. Redis
         // -----------------------------
-
-        // -----------------------------
-// 8. Redis
-// -----------------------------
 
         LettuceConnectionFactory factory =
                 new LettuceConnectionFactory(
@@ -139,9 +143,9 @@ public class Main {
                 new RedisExecutionStore(redis);
 
 
-// -----------------------------
-// 9. Create executor
-// -----------------------------
+        // -----------------------------
+        // 9. Create executor
+        // -----------------------------
 
         WorkflowExecutor executor =
                 new WorkflowExecutor(
@@ -151,7 +155,8 @@ public class Main {
                         dlq,
                         scheduler,
                         executionStore,
-                        config.getWorker().getToken()
+                        config.getWorker().getToken(),
+                        projectId
                 );
 
 

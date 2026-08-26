@@ -19,6 +19,8 @@ public class DeadLetterEntry {
 
     private final WorkflowNode node;
 
+    private final UUID projectId;
+
 
     /*
      * Used when creating a new DLQ entry.
@@ -26,17 +28,22 @@ public class DeadLetterEntry {
     public DeadLetterEntry(
             WorkflowNode node,
             int attemptCount,
-            String reason) {
+            String reason,
+            UUID projectId) {
 
         this(
                 node,
                 attemptCount,
                 reason,
-                Instant.now()
+                Instant.now(),
+                projectId
         );
     }
 
 
+    public UUID getProjectId() {
+        return projectId;
+    }
     /*
      * Used when reconstructing an existing
      * DLQ entry from storage.
@@ -45,7 +52,8 @@ public class DeadLetterEntry {
             WorkflowNode node,
             int attemptCount,
             String reason,
-            Instant timestamp) {
+            Instant timestamp,
+            UUID projectId) {
 
         this.node = node;
 
@@ -63,6 +71,9 @@ public class DeadLetterEntry {
 
         this.timestamp =
                 timestamp;
+
+        this.projectId =
+                projectId;
     }
 
 
