@@ -160,10 +160,6 @@ public class TaskFlowCLI implements CommandLineRunner {
                 configLoader.load(
                         configPath
                 );
-        System.out.println(
-                "Worker token loaded: "
-                        + config.getWorker().getToken()
-        );
 
         ProjectCredential credential =
                 authenticationService.authenticate(

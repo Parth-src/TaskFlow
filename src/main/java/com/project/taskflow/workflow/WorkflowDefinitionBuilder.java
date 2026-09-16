@@ -26,8 +26,22 @@ public class WorkflowDefinitionBuilder {
         // Create all nodes first
         // ==========================================
 
+        if (definition.getTasks() == null || definition.getTasks().isEmpty()) {
+            return workflow;
+        }
+
         for (TaskDefinition task :
                 definition.getTasks()) {
+
+            if (task.getId() == null || task.getId().isBlank()) {
+                throw new IllegalArgumentException("Task ID cannot be null or blank");
+            }
+
+            if (nodes.containsKey(task.getId())) {
+                throw new IllegalArgumentException(
+                        "Duplicate task ID detected: " + task.getId()
+                );
+            }
 
             /*
              * Generate a deterministic UUID from:
@@ -52,7 +66,9 @@ public class WorkflowDefinitionBuilder {
             WorkflowNode node =
                     new WorkflowNode(
                             taskId,
-                            task.getWorker()
+                            task.getId(),
+                            task.getWorker(),
+                            task.getParams()
                     );
 
             nodes.put(
@@ -105,6 +121,13 @@ public class WorkflowDefinitionBuilder {
                         current
                 );
             }
+        }
+
+        if (com.project.taskflow.dependency.CycleDetector.hasCycle(workflow)) {
+            throw new IllegalArgumentException(
+                    "Cyclic dependency detected in workflow: "
+                            + definition.getName()
+            );
         }
 
         return workflow;

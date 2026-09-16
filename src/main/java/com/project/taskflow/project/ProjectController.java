@@ -74,8 +74,37 @@ public class ProjectController {
         return new ProjectDTO(project);
     }
 
+    @PostMapping("/{projectId}/repository")
+    public ProjectDTO connectRepository(
+            @PathVariable UUID projectId,
+            @RequestBody ConnectRepositoryRequest request) {
+
+        UUID userId =
+                UserContext.require();
+
+        Project project =
+                authorizationService.getOwnedProject(
+                        projectId,
+                        userId
+                );
+
+        project.connectGithubRepository(
+                request.repository()
+        );
+
+        project =
+                projectService.save(project);
+
+        return new ProjectDTO(project);
+    }
+
     public record CreateProjectRequest(
             String name
+    ) {
+    }
+
+    public record ConnectRepositoryRequest(
+            String repository
     ) {
     }
 }

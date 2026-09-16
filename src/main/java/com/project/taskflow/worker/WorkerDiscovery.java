@@ -29,6 +29,10 @@ public class WorkerDiscovery {
     public List<String> discover(
             String baseUrl) {
 
+        if (baseUrl == null || (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://"))) {
+            throw new IllegalArgumentException("Invalid worker base URL scheme (must be http/https): " + baseUrl);
+        }
+
         try {
 
             HttpRequest request =

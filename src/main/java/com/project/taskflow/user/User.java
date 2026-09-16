@@ -37,6 +37,11 @@ public class User {
     private String email;
 
     @Column(
+            name = "github_access_token"
+    )
+    private String githubAccessToken;
+
+    @Column(
             nullable = false,
             updatable = false
     )
@@ -70,6 +75,22 @@ public class User {
 
     public String getEmail() {
         return email;
+    }
+
+    public String getGithubAccessToken() {
+        return githubAccessToken;
+    }
+
+    public void setGithubAccessToken(String githubAccessToken) {
+        this.githubAccessToken = githubAccessToken;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public Instant getCreatedAt() {

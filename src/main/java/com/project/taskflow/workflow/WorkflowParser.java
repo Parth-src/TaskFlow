@@ -36,4 +36,42 @@ public class WorkflowParser {
             );
         }
     }
+
+    public WorkflowDefinition parse(
+            java.io.InputStream inputStream) {
+
+        try {
+
+            return mapper.readValue(
+                    inputStream,
+                    WorkflowDefinition.class
+            );
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to parse workflow stream",
+                    e
+            );
+        }
+    }
+
+    public WorkflowDefinition parse(
+            String yamlContent) {
+
+        try {
+
+            return mapper.readValue(
+                    yamlContent,
+                    WorkflowDefinition.class
+            );
+
+        } catch (IOException e) {
+
+            throw new RuntimeException(
+                    "Failed to parse workflow YAML content",
+                    e
+            );
+        }
+    }
 }

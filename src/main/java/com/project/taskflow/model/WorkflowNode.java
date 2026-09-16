@@ -10,7 +10,11 @@ public class WorkflowNode {
 
     private final UUID id;
 
+    private final String name;
+
     private final String workerId;
+
+    private final java.util.Map<String, Object> params;
 
     private final List<WorkflowNode> dependencies;
 
@@ -24,7 +28,9 @@ public class WorkflowNode {
 
         this(
                 UUID.randomUUID(),
-                workerId
+                workerId,
+                workerId,
+                null
         );
     }
 
@@ -35,9 +41,27 @@ public class WorkflowNode {
             UUID id,
             String workerId) {
 
+        this(
+                id,
+                workerId,
+                workerId,
+                null
+        );
+    }
+
+    public WorkflowNode(
+            UUID id,
+            String name,
+            String workerId,
+            java.util.Map<String, Object> params) {
+
         this.id = id;
 
+        this.name = name;
+
         this.workerId = workerId;
+
+        this.params = params != null ? params : java.util.Map.of();
 
         this.dependencies =
                 new ArrayList<>();
@@ -95,5 +119,15 @@ public class WorkflowNode {
     public UUID getId() {
 
         return id;
+    }
+
+    public String getName() {
+
+        return name;
+    }
+
+    public java.util.Map<String, Object> getParams() {
+
+        return params;
     }
 }

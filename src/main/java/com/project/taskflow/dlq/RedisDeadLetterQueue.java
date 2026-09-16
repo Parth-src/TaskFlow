@@ -154,18 +154,16 @@ public class RedisDeadLetterQueue
                         key(taskId)
                 );
 
-        UUID projectId =
-                UUID.fromString(
-                        (String) data.get(
-                                "projectId"
-                        )
-                );
-
         if (data == null ||
                 data.isEmpty()) {
 
             return null;
         }
+
+        UUID projectId =
+                data.get("projectId") != null
+                        ? UUID.fromString((String) data.get("projectId"))
+                        : null;
 
 
         String workerId =

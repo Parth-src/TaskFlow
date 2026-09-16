@@ -13,6 +13,8 @@ public class TaskDefinition {
     @JsonProperty("depends_on")
     private List<String> dependsOn;
 
+    private java.util.Map<String, Object> params;
+
     public String getId() {
         return id;
     }
@@ -37,5 +39,13 @@ public class TaskDefinition {
             List<String> dependsOn) {
 
         this.dependsOn = dependsOn;
+    }
+
+    public java.util.Map<String, Object> getParams() {
+        return params;
+    }
+
+    public void setParams(java.util.Map<String, Object> params) {
+        this.params = params;
     }
 }

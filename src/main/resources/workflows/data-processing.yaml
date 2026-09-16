@@ -1,0 +1,20 @@
+name: data-processing
+
+tasks:
+  - id: extract
+    worker: extract
+
+  - id: transform
+    worker: transform
+    depends_on:
+      - extract
+
+  - id: load
+    worker: load
+    depends_on:
+      - transform
+
+  - id: report
+    worker: report
+    depends_on:
+      - load

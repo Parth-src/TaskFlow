@@ -3,6 +3,7 @@ package com.project.taskflow.auth;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URLEncoder;
@@ -15,6 +16,9 @@ public class GitHubAuthController {
     private final GitHubOAuthProperties properties;
     private final GitHubOAuthService githubOAuthService;
     private final SessionService sessionService;
+
+    @Value("${taskflow.frontend-url:http://localhost:5173/#/dashboard}")
+    private String frontendUrl;
 
     public GitHubAuthController(
             GitHubOAuthProperties properties,
@@ -48,7 +52,7 @@ public class GitHubAuthController {
                 )
                         + "&scope="
                         + encode(
-                        "read:user user:email"
+                        "read:user user:email repo"
                 );
 
         response.sendRedirect(url);
@@ -75,13 +79,13 @@ public class GitHubAuthController {
         cookie.setSecure(false); // localhost
         cookie.setPath("/");
         cookie.setMaxAge(
-                7 * 24 * 60 * 60
+            7 * 24 * 60 * 60
         );
 
         response.addCookie(cookie);
 
         response.sendRedirect(
-                "/dashboard"
+                frontendUrl
         );
     }
 

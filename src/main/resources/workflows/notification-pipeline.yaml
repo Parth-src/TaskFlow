@@ -1,0 +1,20 @@
+name: notification-pipeline
+
+tasks:
+  - id: event
+    worker: event
+
+  - id: prepare
+    worker: prepare
+    depends_on:
+      - event
+
+  - id: send
+    worker: send
+    depends_on:
+      - prepare
+
+  - id: track
+    worker: track
+    depends_on:
+      - send

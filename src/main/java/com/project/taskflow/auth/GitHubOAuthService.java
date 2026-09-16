@@ -2,6 +2,7 @@ package com.project.taskflow.auth;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.project.taskflow.dashboard.dto.GitHubRepositoryDTO;
 import com.project.taskflow.user.User;
 import com.project.taskflow.user.UserRepository;
 
@@ -11,6 +12,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class GitHubOAuthService {
@@ -80,6 +83,16 @@ public class GitHubOAuthService {
                             .findByGithubId(
                                     githubId
                             )
+                            .map(
+                                    existingUser -> {
+                                        existingUser.setGithubAccessToken(accessToken);
+                                        existingUser.setUsername(username);
+                                        if (email != null) {
+                                            existingUser.setEmail(email);
+                                        }
+                                        return userRepository.save(existingUser);
+                                    }
+                            )
                             .orElseGet(
                                     () -> {
 
@@ -89,6 +102,7 @@ public class GitHubOAuthService {
                                                         username,
                                                         email
                                                 );
+                                        newUser.setGithubAccessToken(accessToken);
 
                                         return userRepository
                                                 .save(
@@ -156,16 +170,11 @@ public class GitHubOAuthService {
                         + response.statusCode()
         );
 
-        System.out.println(
-                "GitHub token response body: "
-                        + response.body()
-        );
-
         if (response.statusCode() != 200) {
 
             throw new RuntimeException(
-                    "GitHub token exchange failed: "
-                            + response.body()
+                    "GitHub token exchange failed with status: "
+                            + response.statusCode()
             );
         }
 
@@ -180,8 +189,7 @@ public class GitHubOAuthService {
         if (token == null) {
 
             throw new RuntimeException(
-                    "GitHub did not return an access token. Response: "
-                            + response.body()
+                    "GitHub did not return an access token."
             );
         }
 
@@ -224,26 +232,85 @@ public class GitHubOAuthService {
                         HttpResponse.BodyHandlers.ofString()
                 );
 
-        System.out.println(
-                "GitHub user response status: "
-                        + response.statusCode()
-        );
-
-        System.out.println(
-                "GitHub user response body: "
-                        + response.body()
-        );
-
         if (response.statusCode() != 200) {
 
             throw new RuntimeException(
-                    "GitHub user request failed: "
-                            + response.body()
+                    "GitHub user request failed with status: "
+                            + response.statusCode()
             );
         }
 
         return objectMapper.readTree(
                 response.body()
         );
+    }
+
+    public List<GitHubRepositoryDTO> fetchUserRepositories(String accessToken) {
+        if (accessToken == null || accessToken.isBlank()) {
+            return List.of();
+        }
+
+        List<GitHubRepositoryDTO> result = new ArrayList<>();
+        int page = 1;
+        int maxPages = 10; // Supports up to 1,000 repositories via pagination
+
+        try {
+            while (page <= maxPages) {
+                String uri = "https://api.github.com/user/repos?per_page=100&page="
+                        + page
+                        + "&sort=updated&affiliation=owner,collaborator,organization_member";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(uri))
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header("Accept", "application/vnd.github+json")
+                        .header("X-GitHub-Api-Version", "2022-11-28")
+                        .GET()
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(
+                        request,
+                        HttpResponse.BodyHandlers.ofString()
+                );
+
+                if (response.statusCode() != 200) {
+                    System.err.println("GitHub repositories fetch returned status " + response.statusCode() + ": " + response.body());
+                    break;
+                }
+
+                JsonNode root = objectMapper.readTree(response.body());
+                if (!root.isArray() || root.isEmpty()) {
+                    break;
+                }
+
+                for (JsonNode repo : root) {
+                    String name = repo.path("name").asText("");
+                    String fullName = repo.path("full_name").asText(name);
+                    String owner = repo.path("owner").path("login").asText("");
+                    String description = repo.hasNonNull("description") ? repo.path("description").asText("") : "";
+                    String defaultBranch = repo.hasNonNull("default_branch") ? repo.path("default_branch").asText("main") : "main";
+                    boolean isPrivate = repo.path("private").asBoolean(false);
+
+                    result.add(new GitHubRepositoryDTO(
+                            name,
+                            fullName,
+                            owner,
+                            description,
+                            defaultBranch,
+                            isPrivate
+                    ));
+                }
+
+                if (root.size() < 100) {
+                    break;
+                }
+
+                page++;
+            }
+        } catch (Exception e) {
+            System.err.println("Error fetching GitHub repositories: " + e.getMessage());
+        }
+
+        return result;
     }
 }

@@ -26,4 +26,17 @@ public class WorkflowLoader {
 
         return builder.build(definition);
     }
+
+    public Workflow load(java.io.InputStream inputStream) {
+
+        WorkflowDefinition definition =
+                parser.parse(inputStream);
+
+        return builder.build(definition);
+    }
+
+    public Workflow load(WorkflowDefinition definition) {
+
+        return builder.build(definition);
+    }
 }

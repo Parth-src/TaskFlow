@@ -37,7 +37,18 @@ public class HttpDispatcher {
     public WorkerResponse dispatch(
             WorkerMetadata worker) {
 
+        return dispatch(worker, null);
+    }
+
+    public WorkerResponse dispatch(
+            WorkerMetadata worker,
+            Object params) {
+
         try {
+
+            String jsonBody = objectMapper.writeValueAsString(
+                    params != null ? params : java.util.Map.of()
+            );
 
             HttpRequest request =
                     HttpRequest.newBuilder()
@@ -54,10 +65,15 @@ public class HttpDispatcher {
                                             + workerToken
                             )
 
+                            .header(
+                                    "Content-Type",
+                                    "application/json"
+                            )
+
                             .POST(
                                     HttpRequest
                                             .BodyPublishers
-                                            .noBody()
+                                            .ofString(jsonBody)
                             )
 
                             .build();
@@ -72,12 +88,6 @@ public class HttpDispatcher {
                                     .BodyHandlers
                                     .ofString()
                     );
-
-
-            System.out.println(
-                    response.body()
-            );
-
 
             if (response.statusCode() == 200) {
 

@@ -128,27 +128,12 @@ public class RedisExecutionStore
                         taskId
                 );
 
-        System.out.println(
-                "Looking up Redis key: "
-                        + redisKey
-        );
-
         Map<Object, Object> data =
                 redis.opsForHash().entries(
                         redisKey
                 );
 
-        System.out.println(
-                "Redis data: "
-                        + data
-        );
-
-        if (data.isEmpty()) {
-
-            System.out.println(
-                    "NO EXECUTION RECORD FOUND"
-            );
-
+        if (data == null || data.isEmpty()) {
             return null;
         }
 

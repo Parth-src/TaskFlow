@@ -1,5 +1,8 @@
 package com.project.taskflow.auth;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.util.UUID;
 
 public final class UserContext {
@@ -28,7 +31,8 @@ public final class UserContext {
 
         if (userId == null) {
 
-            throw new IllegalStateException(
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
                     "No authenticated user"
             );
         }

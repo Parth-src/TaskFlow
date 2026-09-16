@@ -77,4 +77,12 @@ public class ProjectService {
                         )
                 );
     }
+
+    public Project save(
+            Project project) {
+
+        return projectRepository.save(
+                project
+        );
+    }
 }

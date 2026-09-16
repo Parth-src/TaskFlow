@@ -67,16 +67,21 @@ public class WorkflowExecutor {
     }
 
 
-    public void execute() {
+    public String execute() {
+        String executionId =
+                UUID.randomUUID().toString();
+
+        execute(executionId);
+        return executionId;
+    }
+
+    public void execute(String executionId) {
 
         engine.initialize();
 
         engine.scheduleReadyTasks(
                 scheduler
         );
-
-        String executionId =
-                UUID.randomUUID().toString();
 
         System.out.println(
                 "Execution ID: "
@@ -205,7 +210,8 @@ public class WorkflowExecutor {
 
                                     WorkerResponse response =
                                             dispatcher.dispatch(
-                                                    worker
+                                                    worker,
+                                                    node.getParams()
                                             );
 
 
@@ -414,7 +420,8 @@ public class WorkflowExecutor {
 
         WorkerResponse response =
                 dispatcher.dispatch(
-                        worker
+                        worker,
+                        node.getParams()
                 );
 
 

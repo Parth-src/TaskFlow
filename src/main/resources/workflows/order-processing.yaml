@@ -1,0 +1,20 @@
+name: order-processing
+
+tasks:
+  - id: validate
+    worker: validate
+
+  - id: payment
+    worker: payment
+    depends_on:
+      - validate
+
+  - id: inventory
+    worker: inventory
+    depends_on:
+      - payment
+
+  - id: fulfillment
+    worker: fulfillment
+    depends_on:
+      - inventory
